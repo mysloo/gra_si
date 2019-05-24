@@ -4,15 +4,38 @@ import io.jenetics.*;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.Limits;
+import javafx.scene.paint.Color;
+import main.Missile;
+import main.Target;
+import main.Tower;
+import main.Wall;
 
 public class RealFunction {
+    public static Target target;
     // Definition of the fitness function.
-    private static Double eval(final Genotype<DoubleGene> gt) {//a w tej funkcji robic animacje,
-        // podejmowac decyzje przez siec i obliczac fitness
-        final double x = gt.getGene().doubleValue();//odleglosc
-        final double y = gt.getChromosome(1).getGene().doubleValue();//czas
-        //return Math.cos(0.5 + Math.sin(x))*Math.cos(x);
-        return Math.abs(x) + y;
+    private static Double eval(final Genotype<DoubleGene> gt) {
+        final double x = gt.getGene().doubleValue();
+        final double y = gt.getChromosome(1).getGene().doubleValue();
+        Missile missile = new Missile(120,630, 20, Color.DARKRED);
+        Tower tower = new Tower(100,650, 40, 50, Color.DARKBLUE);
+        target = new Target(1050, 600, 100,100, Color.DARKGREEN);
+        Wall wall = new Wall(600,300,30,400, Color.DARKGREY);
+        missile.setVelocity(x);
+        missile.setDegrees(y);
+        boolean czy = true;
+        int end = 0;
+        while(czy) {
+            missile.move();
+            end++;
+            if(missile.checkCollision(wall) || missile.reachedGoal(target)){
+                czy = false;
+            }
+        }
+
+        //System.out.println(missile.getDistance() + " " + missile.getTime());
+        //return Math.abs(missile.getDistance()) + missile.getTime();
+        System.out.println(missile.getDistance() + " " + end);
+        return Math.abs(missile.getDistance()) + end;
     }
 
     public static void main(String[] args) {
@@ -21,10 +44,10 @@ public class RealFunction {
                 .builder(
                         RealFunction::eval,
                         //DoubleChromosome.of(0.0, 2.0*Math.PI))
-                        DoubleChromosome.of(-5, 5),//to chyba powinna byc przekazywana kazda z wag
-                        DoubleChromosome.of(-10, 10))
+                        DoubleChromosome.of(1, 25),
+                        DoubleChromosome.of(1, 80))
                 .populationSize(500)
-                .optimize(Optimize.MAXIMUM)
+                .optimize(Optimize.MINIMUM)
                 .alterers(
                         new Mutator<>(0.03),
                         new MeanAlterer<>(0.6))
@@ -34,7 +57,7 @@ public class RealFunction {
         final Phenotype<DoubleGene, Double> result = engine.stream()
                 // Truncate the evolution stream if no better individual could
                 // be found after 5 consecutive generations.
-                .limit(Limits.bySteadyFitness(5))
+                .limit(Limits.bySteadyFitness(  10))
                 // Terminate the evolution after maximal 100 generations.
                 .limit(100)
                 .collect(EvolutionResult.toBestPhenotype());

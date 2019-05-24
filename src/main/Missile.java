@@ -2,14 +2,14 @@ package main;
 
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-
-import java.util.Scanner;
+import pomocne.RealFunction;
 
 
 public class Missile extends Circle {
     private double velocity, degrees;
     private double shiftX, shiftY;
     private long start, end;
+    private double time, distance;
     public Missile(){ super(); }
     public Missile(double x, double y, double r, Color c){
         super(x, y, r, c);
@@ -28,42 +28,35 @@ public class Missile extends Circle {
         this.setCenterY(630);
         Game.timeline.stop();
 
-        System.out.println("Podaj");
-        Scanner sc = new Scanner(System.in);
-        this.setVelocity(sc.nextDouble());
-        this.setDegrees(sc.nextDouble());
         start = System.currentTimeMillis();
         //this.setVelocity(Math.random()*25+1.0);
         //this.setDegrees(Math.random()*90+1.0);
         Game.timeline.play();
     }
-    public int checkCollision(Wall wall){
+    public boolean checkCollision(Wall wall){
         if(this.getCenterY() > Game.APP_H){
             end = System.currentTimeMillis();
-            System.out.println("ziemia ");
-            System.out.println(this.getCenterX()-Game.target.getX());
-            System.out.println((end-start)/1000F);
+            time = (end-start)/10F;
+            distance = this.getCenterX()- RealFunction.target.getX();
             init();
-            return 1;
+            return true;
         }
         if(wall.getX()+wall.getWidth() >= this.getCenterX() && wall.getX() <= this.getCenterX()
                 && wall.getY() <= this.getCenterY()){
             end = System.currentTimeMillis();
-            System.out.println("sciana");
-            System.out.println(this.getCenterX()-Game.target.getX());
-            System.out.println((end-start)/1000F);
+            time = (end-start)/10F;
+            distance = this.getCenterX()-RealFunction.target.getX();
             init();
-            return 2;
+            return true;
         }
-        return 0;
+        return false;
     }
     public boolean reachedGoal(Target target){
         if(target.getX()+target.getWidth() >= this.getCenterX() && target.getX() <= this.getCenterX()
                     && target.getY() <= this.getCenterY()){
             end = System.currentTimeMillis();
-            System.out.println("Sukces");
-            System.out.println(this.getCenterX()-Game.target.getX());
-            System.out.println((end-start)/1000F);
+            time = (end-start)/10F;
+            distance = this.getCenterX()-RealFunction.target.getX();
             init();
             return true;
         }
@@ -98,5 +91,21 @@ public class Missile extends Circle {
         double radians = Math.toRadians(degrees);
         shiftX = velocity*Math.cos(radians);
         shiftY = velocity*Math.sin(radians) * -1;
+    }
+
+    public double getTime() {
+        return time;
+    }
+
+    public void setTime(double time) {
+        this.time = time;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
     }
 }
