@@ -29,6 +29,8 @@ public class RealFunction {
             end++;
             if(missile.checkCollision(wall) || missile.reachedGoal(target)){
                 czy = false;
+                missile.setCenterX(120);
+                missile.setCenterY(650);
             }
         }
 

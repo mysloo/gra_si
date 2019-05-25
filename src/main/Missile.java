@@ -2,18 +2,18 @@ package main;
 
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import pomocne.RealFunction;
 
 
 public class Missile extends Circle {
-    private double velocity, degrees;
+    private static double velocity, degrees;
     private double shiftX, shiftY;
     private long start, end;
     private double time, distance;
     public Missile(){ super(); }
     public Missile(double x, double y, double r, Color c){
         super(x, y, r, c);
-        init();
+        this.setCenterX(120);
+        this.setCenterY(630);
     }
 
     public void move(){
@@ -23,41 +23,28 @@ public class Missile extends Circle {
             shiftY += 0.1;
         }
     }
-    public void init(){
-        this.setCenterX(120);
-        this.setCenterY(630);
-        Game.timeline.stop();
-
-        start = System.currentTimeMillis();
-        //this.setVelocity(Math.random()*25+1.0);
-        //this.setDegrees(Math.random()*90+1.0);
-        Game.timeline.play();
-    }
     public boolean checkCollision(Wall wall){
         if(this.getCenterY() > Game.APP_H){
             end = System.currentTimeMillis();
             time = (end-start)/10F;
-            distance = this.getCenterX()- RealFunction.target.getX();
-            init();
+            distance = this.getCenterX()- Game.target.getX();
             return true;
         }
         if(wall.getX()+wall.getWidth() >= this.getCenterX() && wall.getX() <= this.getCenterX()
                 && wall.getY() <= this.getCenterY()){
             end = System.currentTimeMillis();
             time = (end-start)/10F;
-            distance = this.getCenterX()-RealFunction.target.getX();
-            init();
+            distance = this.getCenterX()- Game.target.getX();
             return true;
         }
         return false;
     }
     public boolean reachedGoal(Target target){
         if(target.getX()+target.getWidth() >= this.getCenterX() && target.getX() <= this.getCenterX()
-                    && target.getY() <= this.getCenterY()){
+                && target.getY() <= this.getCenterY()){
             end = System.currentTimeMillis();
             time = (end-start)/10F;
-            distance = this.getCenterX()-RealFunction.target.getX();
-            init();
+            distance = this.getCenterX()- Game.target.getX();
             return true;
         }
         return false;
