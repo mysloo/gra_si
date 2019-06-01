@@ -8,7 +8,6 @@ module gra_si {
     requires neuroph.contrib;
     requires neuroph.core;
 
-
     opens pomocne;
     opens main;
     opens testowa;
