@@ -10,14 +10,10 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -30,17 +26,18 @@ public class Game extends Application {
 
     public static final double APP_W = 1200, APP_H = 700;
     public static Target target;
-    public static Missile missile;
+    public Missile missile;
     public static ArrayList<Pair> individualProperties;
     static EvolutionStatistics<Double, DoubleMomentStatistics> statistics;
     static int[] generationIndividuals;
     static ArrayList<Double> fitnessValue;
     static int i = 0;
     static int ile = 0;
-    static int prefixSum = -1;
+    static int prefixSum[];
     static int j = 0;
     double pcross, pmutation;
     int popsize, iterations;
+    double bestSolution, bestVelocity, bestDegree;
     // Definition of the fitness function.
     private static synchronized Double eval(final Genotype<DoubleGene> gt) {
         final double v = gt.getGene().doubleValue();
@@ -92,33 +89,60 @@ public class Game extends Application {
         target = new Target(1050, 600, 100,100, Color.DARKGREEN);
         Wall wall = new Wall(600,300,30,400, Color.DARKGREY);
 
-        Label generationLabel = new Label();
+        Label generationLabel = new Label("Generation: 0");
         generationLabel.setLayoutX(545);
         generationLabel.setLayoutY(10);
         generationLabel.setFont(Font.font(null,FontWeight.BOLD, 22));
-        Label fitnessLabel = new Label();
+        Label fitnessLabel = new Label("Fitness value: Infinity");
         fitnessLabel.setLayoutX(545);
         fitnessLabel.setLayoutY(45);
         fitnessLabel.setFont(Font.font(null,FontWeight.BOLD, 16));
-        TextField pcField = new TextField("P. krzyzowania");
+        Label pcLabel = new Label("Pcrossover: ");
+        pcLabel.setLayoutY(10);
+        TextField pcField = new TextField();
         pcField.setPadding(new Insets(5,5,5,5));
-        TextField pmField = new TextField("P. mutacji");
+        pcField.setLayoutX(85);
+        pcField.setLayoutY(10);
+        pcField.setPrefWidth(70);
+        Label pmLabel = new Label("Pmutation: ");
+        pmLabel.setLayoutY(40);
+        TextField pmField = new TextField();
         pmField.setPadding(new Insets(5,5,5,5));
-        pmField.setLayoutY(30);
-        TextField popsizeField = new TextField("Rozmiar populacji");
+        pmField.setLayoutX(85);
+        pmField.setLayoutY(40);
+        pmField.setPrefWidth(70);
+        Label popsizeLabel = new Label("Popsize: ");
+        popsizeLabel.setLayoutY(70);
+        TextField popsizeField = new TextField();
         popsizeField.setPadding(new Insets(5,5,5,5));
-        popsizeField.setLayoutY(60);
-        TextField iterField = new TextField("Liczba generacji");
+        popsizeField.setLayoutX(85);
+        popsizeField.setLayoutY(70);
+        popsizeField.setPrefWidth(70);
+        Label iterLabel = new Label("Maxiter: ");
+        iterLabel.setLayoutY(100);
+        TextField iterField = new TextField();
         iterField.setPadding(new Insets(5,5,5,5));
-        iterField.setLayoutY(90);
-        Button save = new Button("Zapisz");
-        save.setLayoutY(120);
-        final Group root = (Group) scene.getRoot();
-        root.getChildren().addAll(tower,missile,wall,target, generationLabel, fitnessLabel, pcField,pmField,popsizeField,iterField, save);
+        iterField.setLayoutX(85);
+        iterField.setLayoutY(100);
+        iterField.setPrefWidth(70);
+        Button saveButton = new Button("Execute");
+        saveButton.setLayoutX(10);
+        saveButton.setLayoutY(130);
+        Label chooseGenLabel = new Label("Peek a generation: ");
+        chooseGenLabel.setLayoutX(180);
+        chooseGenLabel.setLayoutY(10);
+        ComboBox<Integer> chooseGeneration = new ComboBox<>();
+        chooseGeneration.setLayoutX(310);
+        chooseGeneration.setLayoutY(10);
+        chooseGeneration.setPlaceholder(new Label("empty"));
 
-        save.setOnMouseClicked(e->{
+        final Group root = (Group) scene.getRoot();
+        root.getChildren().addAll(tower,missile,wall,target, pcLabel, pmLabel, popsizeLabel, iterLabel, chooseGenLabel,chooseGeneration, generationLabel, fitnessLabel, pcField,pmField,popsizeField,iterField, saveButton);
+
+        saveButton.setOnMouseClicked(e->{
             if(validInputs(pcField.getText(), pmField.getText(), popsizeField.getText(), iterField.getText())) {
                 tl.stop();
+                saveButton.setDisable(true);
                 statistics = EvolutionStatistics.ofNumber();
                 individualProperties = new ArrayList<>();
                 generationIndividuals = new int[iterations];
@@ -147,9 +171,37 @@ public class Game extends Application {
                 System.out.println(result.getFitness());
                 System.out.println(result.getGenotype().getChromosome(0).getGene().doubleValue());
                 System.out.println(result.getGenotype().getChromosome(1).getGene().doubleValue());
+                bestSolution = result.getFitness();
+                bestVelocity = result.getGenotype().getChromosome(0).getGene().doubleValue();
+                bestDegree = result.getGenotype().getChromosome(1).getGene().doubleValue();
                 missile.setVelocity(individualProperties.get(i).getX());
                 missile.setDegrees(individualProperties.get(i).getY());
-                i = ile*95/100;
+                i++;
+
+                int n;
+                for(n=0;generationIndividuals[n]!=0;n++);
+                prefixSum = new int[n+1];
+                for(int i = 1; i <= n; i++){
+                    prefixSum[i] += generationIndividuals[i-1] + prefixSum[i-1];
+                }
+                for(int i = 0; i < n; i ++){
+                    chooseGeneration.getItems().add(i);
+                }
+                chooseGeneration.setOnAction(es->{
+                    tl.stop();
+                    try {
+                        i = prefixSum[chooseGeneration.getValue()];
+                        j = chooseGeneration.getValue();
+                        generationLabel.setText("Generation: " + j);
+                    }
+                    catch(NullPointerException e1){
+                        j = 0;
+                        i = 0;
+                        generationLabel.setText("Generation: " + j);
+                        fitnessLabel.setText("Fitness value: Infinity");
+                    }
+                    tl.play();
+                });
                 tl.play();
             }
         });
@@ -163,8 +215,7 @@ public class Game extends Application {
                 missile.setCenterX(120);
                 missile.setCenterY(630);
                 try {
-                    if(i > prefixSum){
-                        prefixSum += generationIndividuals[j];
+                    if(i > prefixSum[j]){
                         generationLabel.setText("Generation: " + j);
                         j++;
                     }
@@ -174,8 +225,12 @@ public class Game extends Application {
                     missile.setDegrees(individualProperties.get(i).getY());
                 }
                 catch(IndexOutOfBoundsException es){
+                    chooseGeneration.getItems().clear();
                     tl.stop();
-                    Platform.exit();
+                    showAlert("Found best solution: \nfitness value: " + String.format("%.2f",bestSolution) +
+                            "\nbest velocity: " + String.format("%.2f", bestVelocity) +
+                            "\nbest degree: " + String.format("%.2f", bestDegree), Alert.AlertType.INFORMATION);
+                    saveButton.setDisable(false);
                 }
             }
         });
@@ -187,43 +242,48 @@ public class Game extends Application {
             pcross = Double.parseDouble(pc);
         }
         catch(NumberFormatException exc ){
-            showAlert("Pcross - wrong format");
+            showAlert("Pcross - wrong format", Alert.AlertType.ERROR);
             return false;
         }
         try {
             pmutation = Double.parseDouble(pm);
         }
         catch(NumberFormatException exc ){
-            showAlert("Pmutation - wrong format");
+            showAlert("Pmutation - wrong format", Alert.AlertType.ERROR);
             return false;
         }
         try {
             popsize = Integer.parseInt(pop);
         }
         catch(NumberFormatException exc ){
-            showAlert("Popsize - wrong format");
+            showAlert("Popsize - wrong format", Alert.AlertType.ERROR);
             return false;
         }
         try {
             iterations = Integer.parseInt(iter);
         }
         catch(NumberFormatException exc ){
-            showAlert("Iterations - wrong format");
+            showAlert("Iterations - wrong format", Alert.AlertType.ERROR);
             return false;
         }
         finally{
             if(pcross < 0 || pmutation < 0 || popsize < 0 || iterations < 0){
-                showAlert("Values cannot be negative");
+                showAlert("Values cannot be negative", Alert.AlertType.ERROR);
+                return false;
+            }
+            if(pcross > 1 || pmutation > 1){
+                showAlert("Pcross and pmutation should be in a range [0,1]", Alert.AlertType.ERROR);
                 return false;
             }
         }
         return true;
     }
-    public void showAlert(String msg){
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+    public void showAlert(String msg, Alert.AlertType type){
+        Alert alert = new Alert(type);
         alert.setContentText(msg);
         alert.setHeaderText(null);
-        alert.showAndWait();
+        ((Stage)(alert.getDialogPane().getScene().getWindow())).setAlwaysOnTop(true);
+        alert.show();
     }
 
 
