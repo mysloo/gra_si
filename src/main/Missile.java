@@ -2,7 +2,6 @@ package main;
 
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import testowa.Main;
 
 
 public class Missile extends Circle {
@@ -14,28 +13,28 @@ public class Missile extends Circle {
     public Missile(){ super(); }
     public Missile(double x, double y, double r, Color c){
         super(x, y, r, c);
-        this.setCenterX(120);
-        this.setCenterY(630);
+        defaultSpot();
     }
 
     public void move(){
         this.setCenterX(this.getCenterX() + shiftX);
         this.setCenterY(this.getCenterY() + shiftY);
+        time += 0.25;
         if(shiftX != 0){
             shiftY += 0.1;
         }
     }
+    public void defaultSpot(){
+        this.setCenterX(120);
+        this.setCenterY(630);
+    }
     public boolean checkCollision(Wall wall){
         if(this.getCenterY() > Game.APP_H){
-            end = System.currentTimeMillis();
-            time = (end-start)/1000F;
             distance = this.getCenterX()- Game.target.getX();
             return true;
         }
         if(wall.getX()+wall.getWidth() >= this.getCenterX() && wall.getX() <= this.getCenterX()
                 && wall.getY() <= this.getCenterY() + this.getRadius()){
-            end = System.currentTimeMillis();
-            time = (end-start)/1000F;
             distance = this.getCenterX()- Game.target.getX();
             return true;
         }
@@ -44,14 +43,11 @@ public class Missile extends Circle {
     public boolean reachedGoal(Target target){
         if(target.getX()+target.getWidth() >= this.getCenterX() && target.getX() <= this.getCenterX()
                 && target.getY() <= this.getCenterY()){
-            end = System.currentTimeMillis();
-            time = (end-start)/1000F;
             distance = this.getCenterX()- Game.target.getX();
             return true;
         }
         return false;
     }
-
 
 
     public double getShiftX() {

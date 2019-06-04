@@ -18,6 +18,9 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 public class Game extends Application {
@@ -26,16 +29,14 @@ public class Game extends Application {
     public static Target target;
     public Missile missile;
     public static ArrayList<Details> individualDetails;
-    static int i = 1;
-    static int prefixSum[];
+    static int i = 0;
     static int j = 1;
     static int ile = 0;
     double pcross, pmutation;
     int popsize, iterations;
     double bestSolution, bestVelocity, bestDegree;
-    boolean czy;
     // Definition of the fitness function.
-    private static synchronized Double eval(final Genotype<DoubleGene> gt) {
+    private static synchronized Double evaluateFitness(final Genotype<DoubleGene> gt) {
         final double v = gt.getGene().doubleValue();
         final double d = gt.getChromosome(1).getGene().doubleValue();
         Missile missile = new Missile(120,630, 20, Color.DARKRED);
@@ -43,17 +44,15 @@ public class Game extends Application {
         Wall wall = new Wall(600,300,30,400, Color.DARKGREY);
         missile.setVelocity(v);
         missile.setDegrees(d);
-        double end = 0.25;
+        missile.setTime(0);
         while(true) {
             missile.move();
-            end+=0.25;
             if(missile.checkCollision(wall) || missile.reachedGoal(target)){
-                missile.setCenterX(120);
-                missile.setCenterY(630);
+                missile.defaultSpot();
                 break;
             }
         }
-        return Math.abs(missile.getDistance()) + end;
+        return Math.abs(missile.getDistance()) + missile.getTime();
     }
 
 
@@ -62,7 +61,7 @@ public class Game extends Application {
     }
 
     @Override
-    public void start(final Stage primaryStage) {
+    public void start(final Stage primaryStage){
         primaryStage.setTitle("Animation");
         Group root = new Group();
         Scene scene = new Scene(root, APP_W, APP_H, Color.WHITE);
@@ -72,7 +71,7 @@ public class Game extends Application {
         primaryStage.show();
     }
 
-    private void showAnimation(final Scene scene) {
+    private void showAnimation(final Scene scene){
         Timeline tl = new Timeline();
         missile = new Missile(120,630, 20, Color.DARKRED);
         Tower tower = new Tower(100,650, 40, 50, Color.DARKBLUE);
@@ -135,11 +134,11 @@ public class Game extends Application {
         final Group root = (Group) scene.getRoot();
         root.getChildren().addAll(tower,missile,wall,target, pcLabel,breakButton,stopButton, pmLabel, popsizeLabel, iterLabel, chooseGenLabel,chooseGeneration, generationLabel, fitnessLabel, pcField,pmField,popsizeField,iterField, startButton);
         breakButton.setOnMouseClicked(e->{
-            i = 1;
+            i = 0;
             j = 1;
             tl.stop();
-            missile.setCenterX(120);
-            missile.setCenterY(630);
+            missile.defaultSpot();
+            generationLabel.setText("Generation: " + j);
             startButton.setDisable(false);
         });
         stopButton.setOnMouseClicked(e->{
@@ -159,13 +158,15 @@ public class Game extends Application {
                 tl.stop();
                 startButton.setDisable(true);
                 stopButton.setDisable(false);
-                i = 1;
+                i = 0;
                 j = 1;
+                missile.defaultSpot();
+                generationLabel.setText("Generation: " + j);
                 individualDetails = new ArrayList<>();
                 // Create/configuring the engine via its builder.
                 final Engine<DoubleGene, Double> engine = Engine
                         .builder(
-                                Game::eval,
+                                Game::evaluateFitness,
                                 DoubleChromosome.of(1, 25),
                                 DoubleChromosome.of(1, 90))
                         .populationSize(popsize)
@@ -186,8 +187,12 @@ public class Game extends Application {
                                         gene.getGenotype().getGene().doubleValue(),
                                         gene.getGenotype().getChromosome(1).getGene().doubleValue(),
                                         gene.getFitness().doubleValue())
-                                )))
+                                ))
+                            )
                         .collect(EvolutionResult.toBestPhenotype());
+                try {
+                    writeToFile(individualDetails);
+                }catch(IOException ex){ }
 
                 System.out.println(result.getFitness());
                 System.out.println(result.getGenotype().getChromosome(0).getGene().doubleValue());
@@ -208,12 +213,10 @@ public class Game extends Application {
                     try {
                         i = (chooseGeneration.getValue()-1)*popsize;
                         j = chooseGeneration.getValue();
-                        missile.setCenterX(120);
-                        missile.setCenterY(630);
+                        missile.defaultSpot();
                         missile.setVelocity(individualDetails.get(i).getVelocity());
                         missile.setDegrees(individualDetails.get(i).getDegrees());
                         generationLabel.setText("Generation: " + j);
-                        czy = true;
                     }
                     catch(NullPointerException e1){
                         generationLabel.setText("Generation: " + j);
@@ -231,24 +234,16 @@ public class Game extends Application {
         KeyFrame frame = new KeyFrame(Duration.seconds(0.025), e ->{
             missile.move();
             if(missile.checkCollision(wall) || missile.reachedGoal(target)){
-                missile.setCenterX(120);
-                missile.setCenterY(630);
+                missile.defaultSpot();
                 try {
-                    if(i % popsize == 0){
-                        if(czy == true) j--;
-                        j++;
-                        czy = false;
-                        generationLabel.setText("Generation: " + j);
-                    }
-                    if(i == 0){
-                        fitnessLabel.setText("Fittnes value: " + String.format("%.2f", individualDetails.get(i).getFitness()));
-                    }
-                    else {
-                        fitnessLabel.setText("Fittnes value: " + String.format("%.2f", individualDetails.get(i - 1).getFitness()));
-                    }
+                    fitnessLabel.setText("Fittnes value: " + String.format("%.2f", individualDetails.get(i).getFitness()));
+                    i++;
                     missile.setVelocity(individualDetails.get(i).getVelocity());
                     missile.setDegrees(individualDetails.get(i).getDegrees());
-                    i++;
+                    if(i % popsize == 0 && i!=individualDetails.size()){
+                        j++;
+                        generationLabel.setText("Generation: " + j);
+                    }
                 }
                 catch(IndexOutOfBoundsException es){
                     tl.stop();
@@ -256,13 +251,25 @@ public class Game extends Application {
                             "\nbest velocity: " + String.format("%.2f", bestVelocity) +
                             "\nbest degree: " + String.format("%.2f", bestDegree), Alert.AlertType.INFORMATION);
                     startButton.setDisable(false);
-                    generationLabel.setText("Generation: 1");
                 }
             }
         });
         tl.getKeyFrames().add(frame);
     }
+    public void writeToFile(ArrayList<Details> list) throws IOException {
+        PrintWriter pw = new PrintWriter(new FileWriter("/home/mateusz/ideaProjects/gra_si/logs.txt"));
+        int i = 0, generation = 1;
+        for(Details d : list){
+            if(i % popsize == 0){
+                pw.println("\nGeneration: " + generation);
+                generation++;
+            }
+            pw.println("\t[" + d.getDegrees() + "], [" + d.getVelocity() + "] -> [" + d.getFitness() + "]");
+            i++;
+        }
+        pw.close();
 
+    }
     public boolean validInputs(String pc, String pm, String pop, String iter){
         try {
             pcross = Double.parseDouble(pc);
