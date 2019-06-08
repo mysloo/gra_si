@@ -13,7 +13,7 @@ public class Missile extends Circle {
     public Missile(){ super(); }
     public Missile(double x, double y, double r, Color c){
         super(x, y, r, c);
-        defaultSpot();
+        setUpDefaultSpot();
     }
 
     public void move(){
@@ -24,7 +24,7 @@ public class Missile extends Circle {
             shiftY += 0.1;
         }
     }
-    public void defaultSpot(){
+    public void setUpDefaultSpot(){
         this.setCenterX(120);
         this.setCenterY(630);
     }
