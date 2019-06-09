@@ -31,13 +31,14 @@ public class Game extends Application {
     public static final double APP_W = 1200, APP_H = 700;
     public static Target target;
     public static Wall wall;
-    private static Missile missile;
+    private static Ball ball;
     private static ArrayList<Details> individualDetails;
     private ArrayList<Double> plotData = new ArrayList<>();
     private static int i = 0, j = 1;
     private static int var = 0;
     private double pcross, pmutation, bestSolution, bestVelocity, bestDegree;
     private int popsize, iterations;
+
     private Label generationLabel, fitnessLabel, pcLabel, pmLabel, popsizeLabel, iterLabel, chooseGenLabel;
     private TextField pcField, pmField, popsizeField, iterField;
     private Button startButton, stopButton, breakButton, plotButton;
@@ -47,17 +48,17 @@ public class Game extends Application {
     private static synchronized Double evaluateFitness(final Genotype<DoubleGene> gt) {
         final double v = gt.getGene().doubleValue();
         final double d = gt.getChromosome(1).getGene().doubleValue();
-        missile.setVelocity(v);
-        missile.setDegrees(d);
-        missile.setTime(0);
+        ball.setVelocity(v);
+        ball.setDegrees(d);
+        ball.setTime(0);
         while(true) {
-            missile.move();
-            if(missile.checkCollision(wall) || missile.reachedGoal(target)){
-                missile.setUpDefaultSpot();
+            ball.move();
+            if(ball.checkCollision(wall) || ball.reachedGoal(target)){
+                ball.setUpDefaultSpot();
                 break;
             }
         }
-        return Math.abs(missile.getDistance()) + missile.getTime();
+        return Math.abs(ball.getDistance()) + ball.getTime();
     }
 
 
@@ -79,21 +80,22 @@ public class Game extends Application {
     private void initGame(final Scene scene){
         Timeline tl = new Timeline();
         tl.setCycleCount(Animation.INDEFINITE);
-        missile = new Missile(120,630, 20, Color.DARKRED);
+        ball = new Ball(120,630, 20, Color.DARKRED);
         Tower tower = new Tower(100,650, 40, 50, Color.DARKBLUE);
         target = new Target(1050, 600, 100,100, Color.DARKGREEN);
         wall = new Wall(600,300,30,400, Color.DARKGREY);
 
         final Group root = (Group) scene.getRoot();
-        root.getChildren().addAll(tower, missile, wall, target);
+        root.getChildren().addAll(tower, ball, wall, target);
         initControls(scene);
 
         breakButton.setOnMouseClicked(e->{
             i = 0;
             j = 1;
             tl.stop();
-            missile.setUpDefaultSpot();
+            ball.setUpDefaultSpot();
             generationLabel.setText("Generation: " + j);
+            fitnessLabel.setText("Fitness value: Infinity");
             startButton.setDisable(false);
         });
 
@@ -117,7 +119,7 @@ public class Game extends Application {
                 stopButton.setDisable(false);
                 i = 0;
                 j = 1;
-                missile.setUpDefaultSpot();
+                ball.setUpDefaultSpot();
                 generationLabel.setText("Generation: " + j);
                 individualDetails = new ArrayList<>();
 
@@ -129,8 +131,8 @@ public class Game extends Application {
 
                 fillChooseGenerationComboBox();
 
-                missile.setVelocity(individualDetails.get(0).getVelocity());
-                missile.setDegrees(individualDetails.get(0).getDegrees());
+                ball.setVelocity(individualDetails.get(0).getVelocity());
+                ball.setDegrees(individualDetails.get(0).getDegrees());
                 tl.play();
             }
         });
@@ -145,7 +147,7 @@ public class Game extends Application {
             LineChart linechart = new LineChart(xAxis, yAxis);
             
             XYChart.Series series = new XYChart.Series();
-            series.setName("Best");
+            series.setName("Best (lower-better)");
             double best = Double.MAX_VALUE;
             for(int i = 0; i < plotData.size(); i++){
                 best = Math.min(best, plotData.get(i));
@@ -158,7 +160,7 @@ public class Game extends Application {
             Group plot = new Group();
             plot.getChildren().addAll(linechart);
             Stage stage = new Stage();
-            stage.setTitle("My New Stage Title");
+            stage.setTitle("Fitness value");
             stage.setScene(new Scene(plot));
             stage.setResizable(false);
             stage.show();
@@ -170,14 +172,14 @@ public class Game extends Application {
 
     public KeyFrame showAnimation(Timeline tl){
         KeyFrame frame = new KeyFrame(Duration.seconds(0.0015), e ->{
-            missile.move();
-            if(missile.checkCollision(wall) || missile.reachedGoal(target)){
-                missile.setUpDefaultSpot();
+            ball.move();
+            if(ball.checkCollision(wall) || ball.reachedGoal(target)){
+                ball.setUpDefaultSpot();
                 try {
                     fitnessLabel.setText("Fittnes value: " + String.format("%.2f", individualDetails.get(i).getFitness()));
                     i++;
-                    missile.setVelocity(individualDetails.get(i).getVelocity());
-                    missile.setDegrees(individualDetails.get(i).getDegrees());
+                    ball.setVelocity(individualDetails.get(i).getVelocity());
+                    ball.setDegrees(individualDetails.get(i).getDegrees());
                     if(i % popsize == 0 && i!=individualDetails.size()){
                         j++;
                         generationLabel.setText("Generation: " + j);
@@ -203,9 +205,9 @@ public class Game extends Application {
             try {
                 i = (chooseGeneration.getValue()-1)*popsize;
                 j = chooseGeneration.getValue();
-                missile.setUpDefaultSpot();
-                missile.setVelocity(individualDetails.get(i).getVelocity());
-                missile.setDegrees(individualDetails.get(i).getDegrees());
+                ball.setUpDefaultSpot();
+                ball.setVelocity(individualDetails.get(i).getVelocity());
+                ball.setDegrees(individualDetails.get(i).getDegrees());
                 generationLabel.setText("Generation: " + j);
             }
             catch(NullPointerException e1){
@@ -220,7 +222,7 @@ public class Game extends Application {
                 .builder(
                         Game::evaluateFitness,
                         DoubleChromosome.of(1, 25),
-                        DoubleChromosome.of(1, 90))
+                        DoubleChromosome.of(1, 180))
                 .populationSize(popsize)
                 .optimize(Optimize.MINIMUM)
                 .alterers(
@@ -233,8 +235,8 @@ public class Game extends Application {
         final Engine<DoubleGene, Double> engine = configureGeneticsAlgorithm();
         // Execute the GA (engine).
         final Phenotype<DoubleGene, Double> result = engine.stream()
-                // Truncate the evolution stream if no better individual could
-                // be found after 5 consecutive generations.
+                    // Truncate the evolution stream if no better individual could
+                    // be found after 5 consecutive generations.
                 .limit(Limits.bySteadyFitness(10))
                 .limit(iterations)
                 .peek(r -> r.getPopulation().forEach(gene ->

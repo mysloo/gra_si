@@ -4,14 +4,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
 
-public class Missile extends Circle {
+public class Ball extends Circle {
     private static double velocity, degrees;
     private double shiftX, shiftY;
     private long start, end;
     private double time, distance;
 
-    public Missile(){ super(); }
-    public Missile(double x, double y, double r, Color c){
+    public Ball(){ super(); }
+    public Ball(double x, double y, double r, Color c){
         super(x, y, r, c);
         setUpDefaultSpot();
     }
